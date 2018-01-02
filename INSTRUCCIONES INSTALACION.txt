@@ -1,0 +1,6 @@
+Antes de ejecutar el addon, es necesario instalar el addon que permite utilizar la librería de python Requests en Kodi.
+Descargalo de este enlace: https://github.com/beenje/script.module.requests y dentro de kodi vas a addons,install from zip file.
+Con eso debería llegar, si te da problemas instala la librería con pip install requests.
+
+En el archivo config del script de generar vídeos, cambia la ruta para que escriba la ruta en entera en la base de datos, es decir:
+"http://localhost:8080/videos/crab.mp4" 

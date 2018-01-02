@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.example"
+<addon id="plugin.video.SMMProyectoCAddonprueba"
 version="2.2.0"
-name="Example Kodi Video Plugin"
+name="SMMProyectoCAddonprueba"
 provider-name="Roman_V_M">
 <requires>
   <import addon="xbmc.python" version="2.24.0"/>
+  <import addon="script.module.requests" version="2.18.4"/>
 </requires>
 <extension point="xbmc.python.pluginsource" library="main.py">
   <provides>video</provides>
