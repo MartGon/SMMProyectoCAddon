@@ -9,6 +9,7 @@ provider-name="Roman_V_M">
 <extension point="xbmc.python.pluginsource" library="main.py">
   <provides>video</provides>
 </extension>
+<extension point="xbmc.python.module" library="urllib.request" />
 <extension point="xbmc.addon.metadata">
   <summary lang="en">Example Kodi Video Plugin</summary>
   <description lang="en">An example video plugin for Kodi mediacenter.</description>
