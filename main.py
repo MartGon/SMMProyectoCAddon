@@ -11,6 +11,11 @@ import xbmcgui
 import xbmcplugin
 import requests
 import json
+import urllib2
+import sys
+import datetime
+import os
+import time
 from urlparse import parse_qsl
 
 # Get the plugin url in plugin:// notation.
@@ -61,7 +66,8 @@ def get_categories():
 				if(key!="nombre") and (key!="path") and (key!="_id") and (key not in categories):
 					categories.append(key)
     else:
-    	print "Error code %s" % response.status_code	
+    	print "Error code %s" % response.status_code
+    categories.append("Recomendado")	
     return categories
 
 
@@ -146,22 +152,166 @@ def get_sub_categories(category):
 	else:
 		print "Error code %s" % response.status_code
 	return sub_categories
+def get_best_video(category):
+	url="http://localhost:3000/peliculas"
+	maxValue=0
+	video=dict()
+	response=requests.get(url)
+	if response.status_code==200:
+		results=response.json()
+		for result in results:
+			for key,value in result.items():
+				if (key==category) and (value>maxValue):
+					maxValue=value
+					video=result
+	else:
+		print "Error code %s" % response.status_code
+	return video
+def get_original_video(category):
+	url="http://localhost:3000/peliculas"
+	maxValue=0
+	video=dict()
+	response=requests.get(url)
+	if response.status_code==200:
+		results=response.json()
+		for result in results:
+			for key,value in result.items():
+				if (key==category) and (value=="0"):
+					video=result
+					#xbmc.log(video)
+	else:
+		print "Error code %s" % response.status_code
+	return video
+def getBandwidth():
 
+	filename = "Config.wtf"
+	#filename="991640"
+	userdatapath = "C:/Users/Atilano/AppData/Roaming/Kodi/userdata/addon_data"
+	logfile=userdatapath + "speed.txt"
+	curTime = datetime.datetime.now()
+	
+	if os.path.isfile(logfile):
+		file = open( logfile, "r")
+	else:
+		file = None
+		
+	oldTime = curTime.replace(year=curTime.year -1 )
+	velocidad = 0
+	if file is not None:
+		for line in file:
+			if line.strip().startswith('Date:'):
+				line = line.strip().replace('Date:', '')
+				try:
+					oldTime = datetime.datetime.strptime(line.strip(), '%Y-%m-%d %H:%M:%S')
+				except TypeError:
+					oldTime = datetime.datetime.fromtimestamp(time.mktime(time.strptime(line.strip(), '%Y-%m-%d %H:%M:%S')))
+			elif line.strip().startswith('Download Speed:'):
+				velocidad = line.strip().replace('Download Speed:', '').replace(' kb/s\n', '').strip()
+				velocidad = float(velocidad)
+		
+		file.close()
+	
+	difference = (curTime - oldTime).total_seconds() / 3600
+	if difference < 4:
+		return velocidad
+		
+	u = urllib2.urlopen('http://seasonlegion.ddns.net/downloads/' + filename)
+	#u = urllib2.urlopen('https://www.wallpaperup.com/wallpaper/download/'+ filename)
+	f = open(filename, 'wb')
+	while True:
+		buffer = u.read(8192)
+		if not buffer:
+			break
+		f.write(buffer)
+	f.close()
+	
+	elapsedTime = (datetime.datetime.now() - curTime).total_seconds()
+
+	size = os.path.getsize(filename) # en bytes
+	os.remove(filename)
+
+	velocidad = size * 8 / (elapsedTime * 1000) # Para que sea en kB/s 
+
+	file = open(logfile, "w")
+	file.writelines('Date: ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\n')
+	file.writelines('Size:  ' + str(size) + ' bytes\n')
+	file.writelines('Elapsed Time: ' + str(elapsedTime) + ' seconds\n')
+	file.writelines("Download Speed: " + str(velocidad))
+	file.close()
+	return velocidad
+def get_best_rate(rate_recomendado,category):
+	url="http://localhost:3000/peliculas"
+	minValue=100000000
+	difValue=0
+	video=dict()
+	response=requests.get(url)
+	if response.status_code==200:
+		results=response.json()
+		for result in results:
+			for key,value in result.items():
+				if (key==category):
+					difValue=float(value)-float(rate_recomendado)
+					if(difValue<minValue):
+						minValue=difValue
+						video=result
+	else:
+		print "Error code %s" % response.status_code
+	return video
 def list_sub_categories(category):
 	xbmcplugin.setPluginCategory(_handle,category)
 	xbmcplugin.setContent(_handle,'values')
 	xbmc.log('ENTRO EN SUB_CATEGORIES')
-	sub_categories=get_sub_categories(category)
-	for sub_category in sub_categories:
-		list_item=xbmcgui.ListItem(label=str(sub_category))
+	if category=="calidad":
+		video=get_best_video(category)
+		list_item=xbmcgui.ListItem(label=video['nombre'])
+		list_item.setInfo('video',{'title': video['nombre'], 'genre': video['nombre']})
 		list_item.setArt({'thumb': thumb,
-                          'icon': thumb,
-                          'fanart': thumb})
-		list_item.setInfo('video', {'title': sub_category, 'genre': sub_category})
-		url= get_url(action='listing', category=category,sub_category=str(sub_category))
-		is_folder = True
-		xbmcplugin.addDirectoryItem(_handle, url, list_item, is_folder)
-	xbmcplugin.endOfDirectory(_handle)
+			'icon':thumb,
+			'fanart':thumb})
+		list_item.setProperty('IsPlayable','True')
+		url=get_url(action='play',video=video['path'])
+		is_folder=False
+		xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
+		xbmcplugin.endOfDirectory(_handle)
+	elif category=="original":
+		video=get_original_video(category)
+		list_item=xbmcgui.ListItem(label=video['nombre'])
+		list_item.setInfo('video',{'title':video['nombre'], 'genre':video['nombre']})
+		list_item.setArt({'thumb':thumb,
+			'icon':thumb,
+			'fanart':thumb})
+		list_item.setProperty('IsPlayable','True')
+		url=get_url(action='play',video=video['path'])
+		is_folder=False
+		xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
+		xbmcplugin.endOfDirectory(_handle)
+	elif category=="Recomendado":
+		rate_recomendado=getBandwidth()
+		video=get_best_rate(rate_recomendado,"bitrate")
+		list_item=xbmcgui.ListItem(label=video['nombre'])
+		list_item.setInfo('video',{'title':video['nombre'], 'genre':video['nombre']})
+		list_item.setArt({'thumb':thumb,
+			'icon':thumb,
+			'fanart':thumb})
+		list_item.setProperty('IsPlayable','True')
+		url=get_url(action='play',video=video['path'])
+		is_folder=False
+		xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
+		xbmcplugin.endOfDirectory(_handle)
+	else:
+		sub_categories=get_sub_categories(category)
+		for sub_category in sub_categories:
+			list_item=xbmcgui.ListItem(label=str(sub_category))
+			list_item.setInfo('video',{'title':sub_category,'genre':sub_category})
+			list_item.setArt({'thumb': thumb,
+				'icon': thumb,
+				'fanart':thumb})
+			url=get_url(action='listing',category=category,sub_category=str(sub_category))
+			is_folder=True
+			xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
+		xbmcplugin.endOfDirectory(_handle)
+
+
 	
 
 def list_videos(category,sub_category):
