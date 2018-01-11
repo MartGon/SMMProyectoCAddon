@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="plugin.video.SMMProyectoCAddon"
+<addon id="plugin.video.SMMProyectoCAddonprueba"
 version="2.2.0"
-name="SMMProyectoCAddon"
-provider-name="Guillermo Rodríguez Agrasar">
+name="SMMProyectoCAddonprueba"
+provider-name="Guillermo Rodriguez Agrasar">
 <requires>
   <import addon="xbmc.python" version="2.24.0"/>
   <import addon="script.module.requests" version="2.18.4"/>
@@ -11,9 +11,9 @@ provider-name="Guillermo Rodríguez Agrasar">
   <provides>video</provides>
 </extension>
 <extension point="xbmc.addon.metadata">
-  <summary lang="en">Proyecto C SMM</summary>
-  <description lang="en">Cliente basado en Kodi del servidor REST</description>
-  <disclaimer lang="en">SMM Teleco Uvigo</disclaimer>
+  <summary lang="en">Example Kodi Video Plugin</summary>
+  <description lang="en">An example video plugin for Kodi mediacenter.</description>
+  <disclaimer lang="en">Free sample videos are provided by www.vidsplay.com.</disclaimer>
   <assets>
     <icon>icon.png</icon>
     <fanart>fanart.jpg</fanart>

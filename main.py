@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # Module: default
-# Author: Roman V. M.
-# Created on: 28.11.2014
-# License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+# Author: Guillermo Rodriguez Agrasar
+# Created on: 28.12.2017
 
 import sys
 from urllib import urlencode
@@ -24,9 +23,6 @@ _url = sys.argv[0]
 _handle = int(sys.argv[1])
 thumb='http://www.vidsplay.com/wp-content/uploads/2017/04/crab-screenshot.jpg'
 # Free sample videos are provided by www.vidsplay.com
-# Here we use a fixed set of properties simply for demonstrating purposes
-# In a "real life" plugin you will need to get info and links to video files/streams
-# from some web-site or online service.
 
 
 
@@ -152,6 +148,7 @@ def get_sub_categories(category):
 	else:
 		print "Error code %s" % response.status_code
 	return sub_categories
+	
 def get_best_video(category):
 	url="http://localhost:3000/peliculas"
 	maxValue=0
@@ -167,6 +164,7 @@ def get_best_video(category):
 	else:
 		print "Error code %s" % response.status_code
 	return video
+	
 def get_original_video(category):
 	url="http://localhost:3000/peliculas"
 	maxValue=0
@@ -182,41 +180,13 @@ def get_original_video(category):
 	else:
 		print "Error code %s" % response.status_code
 	return video
+	
 def getBandwidth():
 
-	filename = "Config.wtf"
-	#filename="991640"
-	userdatapath = "C:/Users/Atilano/AppData/Roaming/Kodi/userdata/addon_data"
-	logfile=userdatapath + "speed.txt"
+	filename = "Launcher.zip"
 	curTime = datetime.datetime.now()
-	
-	if os.path.isfile(logfile):
-		file = open( logfile, "r")
-	else:
-		file = None
-		
-	oldTime = curTime.replace(year=curTime.year -1 )
-	velocidad = 0
-	if file is not None:
-		for line in file:
-			if line.strip().startswith('Date:'):
-				line = line.strip().replace('Date:', '')
-				try:
-					oldTime = datetime.datetime.strptime(line.strip(), '%Y-%m-%d %H:%M:%S')
-				except TypeError:
-					oldTime = datetime.datetime.fromtimestamp(time.mktime(time.strptime(line.strip(), '%Y-%m-%d %H:%M:%S')))
-			elif line.strip().startswith('Download Speed:'):
-				velocidad = line.strip().replace('Download Speed:', '').replace(' kb/s\n', '').strip()
-				velocidad = float(velocidad)
-		
-		file.close()
-	
-	difference = (curTime - oldTime).total_seconds() / 3600
-	if difference < 4:
-		return velocidad
 		
 	u = urllib2.urlopen('http://seasonlegion.ddns.net/downloads/' + filename)
-	#u = urllib2.urlopen('https://www.wallpaperup.com/wallpaper/download/'+ filename)
 	f = open(filename, 'wb')
 	while True:
 		buffer = u.read(8192)
@@ -230,37 +200,38 @@ def getBandwidth():
 	size = os.path.getsize(filename) # en bytes
 	os.remove(filename)
 
-	velocidad = size * 8 / (elapsedTime * 1000) # Para que sea en kB/s 
-
-	file = open(logfile, "w")
-	file.writelines('Date: ' + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\n')
-	file.writelines('Size:  ' + str(size) + ' bytes\n')
-	file.writelines('Elapsed Time: ' + str(elapsedTime) + ' seconds\n')
-	file.writelines("Download Speed: " + str(velocidad))
-	file.close()
+	velocidad = size * 8 / (elapsedTime * 1000) # Para que sea en kb/s 
+	
 	return velocidad
+	
 def get_best_rate(rate_recomendado,category):
+
 	url="http://localhost:3000/peliculas"
-	minValue=100000000
+	minValue=1000000
 	difValue=0
 	video=dict()
+	xbmc.log('EL bandwidth es' + str(rate_recomendado))
+	
 	response=requests.get(url)
 	if response.status_code==200:
 		results=response.json()
 		for result in results:
 			for key,value in result.items():
 				if (key==category):
-					difValue=float(value)-float(rate_recomendado)
+					difValue=abs(float(value)-float(rate_recomendado))
 					if(difValue<minValue):
 						minValue=difValue
+						xbmc.log('La diferencia es ' + str(minValue))
 						video=result
 	else:
 		print "Error code %s" % response.status_code
 	return video
+	
 def list_sub_categories(category):
 	xbmcplugin.setPluginCategory(_handle,category)
 	xbmcplugin.setContent(_handle,'values')
 	xbmc.log('ENTRO EN SUB_CATEGORIES')
+	
 	if category=="calidad":
 		video=get_best_video(category)
 		list_item=xbmcgui.ListItem(label=video['nombre'])
@@ -273,19 +244,34 @@ def list_sub_categories(category):
 		is_folder=False
 		xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
 		xbmcplugin.endOfDirectory(_handle)
+		
 	elif category=="original":
-		video=get_original_video(category)
-		list_item=xbmcgui.ListItem(label=video['nombre'])
-		list_item.setInfo('video',{'title':video['nombre'], 'genre':video['nombre']})
-		list_item.setArt({'thumb':thumb,
-			'icon':thumb,
-			'fanart':thumb})
-		list_item.setProperty('IsPlayable','True')
-		url=get_url(action='play',video=video['path'])
-		is_folder=False
-		xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
+	
+		#video=get_original_video(category)
+		url="http://localhost:3000/peliculas"
+		video=dict()
+		response=requests.get(url)
+		
+		if response.status_code==200:
+			results=response.json()
+			for result in results:
+				for key,value in result.items():
+					if (key==category) and ((value=="0") or (value==0)):
+						video=result
+						list_item=xbmcgui.ListItem(label=video['nombre'])
+						list_item.setInfo('video',{'title':video['nombre'], 'genre':video['nombre']})
+						list_item.setArt({'thumb':thumb,
+							'icon':thumb,
+							'fanart':thumb})
+						list_item.setProperty('IsPlayable','True')
+						url=get_url(action='play',video=video['path'])
+						is_folder=False
+						xbmcplugin.addDirectoryItem(_handle,url,list_item,is_folder)
+						
 		xbmcplugin.endOfDirectory(_handle)
+		
 	elif category=="Recomendado":
+	
 		rate_recomendado=getBandwidth()
 		video=get_best_rate(rate_recomendado,"bitrate")
 		list_item=xbmcgui.ListItem(label=video['nombre'])
